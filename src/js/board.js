@@ -43,6 +43,7 @@ function createStartingPosition() {
         createPawns(6, "white"),
         createBackline(7, "white"),
     ];
+    newBoard[1][0] = new Pawn(1, 0, 'white'); // NOTE: remove when issue promote pawn is solved
     return newBoard;
 }
 
@@ -70,7 +71,7 @@ function movePiece(piece, newRow, newCol, isEnPassant) {
     piece.setPosition(newRow, newCol);
     currentPosition[oldRow][oldCol] = null;
     if (isEnPassant) {
-        if (piece.color === 'white') currentPosition[newRow + 1][newCol] = null;
+        if (piece.color === "white") currentPosition[newRow + 1][newCol] = null;
         else currentPosition[newRow - 1][newCol] = null;
     }
     currentPosition[newRow][newCol] = piece;
@@ -82,18 +83,25 @@ function movePiece(piece, newRow, newCol, isEnPassant) {
         to: { row: newRow, col: newCol },
     });
     trackMoves.isWhiteTurn = !trackMoves.isWhiteTurn;
-    trackMoves.moveCount += 1;
+    trackMoves.moveCount++;
     drawHistory();
-    drawCurrentPosition();
+    if (pawnPromotionCheck(piece)) {
+        createPromotionTilesHTML(piece);
+    } else {
+        drawCurrentPosition();
+    }
 }
 
 function createTilesHTML() {
+    board.textContent = '';
     for (let row = 0; row < currentPosition.length; row++) {
         for (let col = 0; col < currentPosition[0].length; col++) {
             tile = document.createElement("div");
             tile.id = createIdString(row, col);
             tile.classList.add("tile");
-            ((col+row) % 2) === 0 ? tile.classList.add("light-tile-color") : tile.classList.add("dark-tile-color");
+            (col + row) % 2 === 0
+                ? tile.classList.add("light-tile-color")
+                : tile.classList.add("dark-tile-color");
             tile.addEventListener("mousedown", () => {
                 handleClick(row, col);
             });
@@ -104,7 +112,7 @@ function createTilesHTML() {
 
 function handleClick(row, col) {
     clearPossibleMovesCSS();
-    const {validMove, isEnPassant} = isValidMove(row, col);
+    const { validMove, isEnPassant } = isValidMove(row, col);
     if (validMove) {
         handleClickMove(row, col, isEnPassant);
         return;
@@ -128,12 +136,12 @@ function handleClickMove(row, col, isEnPassant) {
 
 function isValidMove(row, col) {
     for (const move of selectedTile.possibleMoves) {
-        const { row: possibleRow, col: possibleCol, isEnPassant} = move;
-        if (possibleCol === col && possibleRow === row) return { validMove: true, isEnPassant: isEnPassant ? true : false };
+        const { row: possibleRow, col: possibleCol, isEnPassant } = move;
+        if (possibleCol === col && possibleRow === row)
+            return { validMove: true, isEnPassant: isEnPassant ? true : false };
     }
     return { validMove: false, isEnPassant: false };
 }
-
 function getTileElement(row, col) {
     return document.getElementById(`${row}-${col}`);
 }
@@ -156,12 +164,10 @@ function drawCurrentPosition() {
             const currentPiece = currentPosition[row][col];
             const currentTileElement = getTileElement(row, col);
             if (currentPiece) {
-                const pieceText = currentPiece.symbol;
                 const IS_WHITE = currentPiece.color === "white";
-                const IS_BLACK = !IS_WHITE;
-                currentTileElement.textContent = pieceText;
+                currentTileElement.textContent = currentPiece.symbol;
                 currentTileElement.classList.toggle("white", IS_WHITE);
-                currentTileElement.classList.toggle("black", IS_BLACK);
+                currentTileElement.classList.toggle("black", !IS_WHITE);
             } else {
                 currentTileElement.textContent = "";
             }
